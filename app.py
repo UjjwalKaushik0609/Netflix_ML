@@ -1,54 +1,46 @@
 import streamlit as st
-import pandas as pd
 import pickle
+import os
 
-# -----------------------------
-# Load Model + Encoder
-# -----------------------------
+st.title("🎬 Netflix Rating Prediction")
+
+# Debug: show files available in the repo
+st.write("📂 Files available in repo:", os.listdir("."))
+
 @st.cache_resource
 def load_model():
-    with open("netflix_rating_model.pkl", "rb") as f:
-        model = pickle.load(f)
-    with open("label_encoder.pkl", "rb") as f:
-        le = pickle.load(f)
-    return model, le
+    try:
+        with open("netflix_rating_model.pkl", "rb") as f:
+            model = pickle.load(f)
+        with open("label_encoder.pkl", "rb") as f:
+            le = pickle.load(f)
+        return model, le
+    except FileNotFoundError as e:
+        st.error(f"❌ Model file not found: {e}")
+        return None, None
 
 model, le = load_model()
 
-# -----------------------------
-# Streamlit UI
-# -----------------------------
-st.title("🎬 Netflix Rating Prediction App")
+if model is not None and le is not None:
+    st.success("✅ Model and Label Encoder loaded successfully!")
+    
+    # Example input (you can replace with your cleaned features later)
+    type_input = st.selectbox("Select Type", ["Movie", "TV Show"])
+    release_year = st.number_input("Release Year", min_value=1920, max_value=2025, value=2020)
+    duration = st.number_input("Duration (minutes)", min_value=1, max_value=300, value=90)
+    is_international = st.selectbox("Is International?", [0, 1])
 
-st.write("This app predicts the **rating** (like TV-MA, PG-13, TV-14, etc.) "
-         "for Netflix titles based on their features.")
+    if st.button("Predict Rating"):
+        # Prepare input vector (this must match your training features order!)
+        input_data = [[
+            0 if type_input == "Movie" else 1,
+            release_year,
+            duration,
+            is_international
+        ]]
+        prediction = model.predict(input_data)
+        rating = le.inverse_transform(prediction)[0]
+        st.success(f"📺 Predicted Rating: **{rating}**")
+else:
+    st.warning("⚠️ Model not loaded. Please check if `.pkl` files are in repo.")
 
-# Collect inputs
-type_ = st.selectbox("Type", ["Movie", "TV Show"])
-director = st.text_input("Director (leave blank if unknown)", "")
-cast = st.text_input("Main Cast (comma-separated, leave blank if unknown)", "")
-country = st.text_input("Country", "United States")
-release_year = st.number_input("Release Year", min_value=1920, max_value=2025, value=2020)
-duration_num = st.number_input("Duration (in minutes or seasons)", min_value=1, value=90)
-listed_in = st.text_input("Category (e.g. Drama, Comedy, Documentary)", "Drama")
-year_added = st.number_input("Year Added to Netflix", min_value=2008, max_value=2025, value=2021)
-is_international = st.selectbox("Is it International?", [0, 1])
-
-# Prepare input DataFrame
-input_data = pd.DataFrame([{
-    "type": 0 if type_ == "Movie" else 1,
-    "director": hash(director) % 5000,
-    "cast": hash(cast) % 10000,
-    "country": hash(country) % 1000,
-    "release_year": release_year,
-    "listed_in": hash(listed_in) % 500,
-    "year_added": year_added,
-    "duration_num": duration_num,
-    "is_international": is_international
-}])
-
-# Predict
-if st.button("Predict Rating"):
-    pred = model.predict(input_data)[0]
-    rating = le.inverse_transform([pred])[0]
-    st.success(f"✅ Predicted Rating: **{rating}**")
