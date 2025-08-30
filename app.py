@@ -26,9 +26,11 @@ model, le = load_model()
 if model is not None and le is not None:
     st.subheader("Enter Movie/Show Features")
 
-    # --- User Input ---
+    # --- User Inputs ---
     duration = st.number_input("Duration (minutes)", min_value=1, max_value=500, value=90)
     release_year = st.number_input("Release Year", min_value=1900, max_value=2025, value=2021)
+    number_of_reviews = st.number_input("Number of Reviews", min_value=0, max_value=10000, value=100)
+    average_review_score = st.slider("Average Review Score", 0.0, 10.0, 7.5)
 
     # Dropdown options
     country_options = ["United States", "India", "United Kingdom", "Canada", "Australia", "Other"]
@@ -37,12 +39,42 @@ if model is not None and le is not None:
     country = st.selectbox("Country", country_options)
     listed_in = st.selectbox("Category", category_options)
 
-    # Dummy features (replace with your real preprocessing)
-    features = [[0, 0, 0, 0, release_year, 0, 2021, duration, 0]]
+    # --- Encoding dropdowns ---
+    country_map = {
+        "United States": 0,
+        "India": 1,
+        "United Kingdom": 2,
+        "Canada": 3,
+        "Australia": 4,
+        "Other": 5
+    }
+
+    category_map = {
+        "Documentaries": 0,
+        "Comedies": 1,
+        "Dramas": 2,
+        "Action & Adventure": 3,
+        "Kids": 4,
+        "Horror": 5,
+        "Other": 6
+    }
+
+    country_encoded = country_map[country]
+    category_encoded = category_map[listed_in]
+
+    # --- Feature vector ---
+    features = [[
+        number_of_reviews,
+        average_review_score,
+        country_encoded,
+        category_encoded,
+        release_year,
+        duration
+    ]]
 
     if st.button("Predict Rating"):
         pred = model.predict(features)
-        # Handle label encoder safely
+        # Handle LabelEncoder safely
         if hasattr(le, "inverse_transform"):
             try:
                 rating = le.inverse_transform(pred)[0]
@@ -51,6 +83,7 @@ if model is not None and le is not None:
         else:
             rating = pred[0]
         st.success(f"✅ Predicted Rating: {rating}")
+
 else:
     st.warning("⚠️ Model not loaded. Please check Hugging Face repo files.")
 
