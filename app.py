@@ -24,20 +24,33 @@ def load_model():
 model, le = load_model()
 
 if model is not None and le is not None:
-    # --- User Input ---
     st.subheader("Enter Movie/Show Features")
 
+    # --- User Input ---
     duration = st.number_input("Duration (minutes)", min_value=1, max_value=500, value=90)
     release_year = st.number_input("Release Year", min_value=1900, max_value=2025, value=2021)
-    country = st.text_input("Country", "United States")
-    listed_in = st.text_input("Category", "Documentaries")
 
-    # Dummy encoding (you’d replace this with your real preprocessing)
+    # Dropdown options
+    country_options = ["United States", "India", "United Kingdom", "Canada", "Australia", "Other"]
+    category_options = ["Documentaries", "Comedies", "Dramas", "Action & Adventure", "Kids", "Horror", "Other"]
+
+    country = st.selectbox("Country", country_options)
+    listed_in = st.selectbox("Category", category_options)
+
+    # Dummy features (replace with your real preprocessing)
     features = [[0, 0, 0, 0, release_year, 0, 2021, duration, 0]]
 
     if st.button("Predict Rating"):
         pred = model.predict(features)
-        st.success(f"✅ Predicted Rating: {le.inverse_transform(pred)[0]}")
+        # Handle label encoder safely
+        if hasattr(le, "inverse_transform"):
+            try:
+                rating = le.inverse_transform(pred)[0]
+            except Exception:
+                rating = pred[0]
+        else:
+            rating = pred[0]
+        st.success(f"✅ Predicted Rating: {rating}")
 else:
     st.warning("⚠️ Model not loaded. Please check Hugging Face repo files.")
 
