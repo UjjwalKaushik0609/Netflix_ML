@@ -1,46 +1,43 @@
 import streamlit as st
 import pickle
-import os
+from huggingface_hub import hf_hub_download
 
-st.title("🎬 Netflix Rating Prediction")
+st.title("🎬 Netflix Rating Prediction App")
 
-# Debug: show files available in the repo
-st.write("📂 Files available in repo:", os.listdir("."))
-
+# Load Model + Label Encoder from Hugging Face Hub
 @st.cache_resource
 def load_model():
     try:
-        with open("netflix_rating_model.pkl", "rb") as f:
+        model_path = hf_hub_download(repo_id="UjjwalKaushik/Netflix_ML", filename="netflix_rating_model.pkl")
+        encoder_path = hf_hub_download(repo_id="UjjwalKaushik/Netflix_ML", filename="label_encoder.pkl")
+
+        with open(model_path, "rb") as f:
             model = pickle.load(f)
-        with open("label_encoder.pkl", "rb") as f:
+        with open(encoder_path, "rb") as f:
             le = pickle.load(f)
+
         return model, le
-    except FileNotFoundError as e:
-        st.error(f"❌ Model file not found: {e}")
+    except Exception as e:
+        st.error(f"❌ Error loading model: {e}")
         return None, None
 
 model, le = load_model()
 
 if model is not None and le is not None:
-    st.success("✅ Model and Label Encoder loaded successfully!")
-    
-    # Example input (you can replace with your cleaned features later)
-    type_input = st.selectbox("Select Type", ["Movie", "TV Show"])
-    release_year = st.number_input("Release Year", min_value=1920, max_value=2025, value=2020)
-    duration = st.number_input("Duration (minutes)", min_value=1, max_value=300, value=90)
-    is_international = st.selectbox("Is International?", [0, 1])
+    # --- User Input ---
+    st.subheader("Enter Movie/Show Features")
+
+    duration = st.number_input("Duration (minutes)", min_value=1, max_value=500, value=90)
+    release_year = st.number_input("Release Year", min_value=1900, max_value=2025, value=2021)
+    country = st.text_input("Country", "United States")
+    listed_in = st.text_input("Category", "Documentaries")
+
+    # Dummy encoding (you’d replace this with your real preprocessing)
+    features = [[0, 0, 0, 0, release_year, 0, 2021, duration, 0]]
 
     if st.button("Predict Rating"):
-        # Prepare input vector (this must match your training features order!)
-        input_data = [[
-            0 if type_input == "Movie" else 1,
-            release_year,
-            duration,
-            is_international
-        ]]
-        prediction = model.predict(input_data)
-        rating = le.inverse_transform(prediction)[0]
-        st.success(f"📺 Predicted Rating: **{rating}**")
+        pred = model.predict(features)
+        st.success(f"✅ Predicted Rating: {le.inverse_transform(pred)[0]}")
 else:
-    st.warning("⚠️ Model not loaded. Please check if `.pkl` files are in repo.")
+    st.warning("⚠️ Model not loaded. Please check Hugging Face repo files.")
 
