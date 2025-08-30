@@ -1,5 +1,6 @@
-streamlit==1.30.0
-pandas==2.1.1
-scikit-learn==1.3.2
-xgboost==1.7.6
-huggingface-hub==1.30.0
+streamlit
+scikit-learn
+xgboost
+huggingface-hub
+pandas
+
